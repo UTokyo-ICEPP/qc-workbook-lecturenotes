@@ -1,4 +1,6 @@
 from typing import Any, Sequence, Optional
+import logging
+logging.basicConfig(level=logging.WARNING)
 import numpy as np
 from qiskit import QuantumCircuit, transpile
 from qiskit.opflow import PauliSumOp
