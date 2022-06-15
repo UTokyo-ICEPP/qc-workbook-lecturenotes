@@ -2,8 +2,10 @@ from typing import Any, Sequence, Optional
 import numpy as np
 from qiskit import QuantumCircuit, transpile
 from qiskit.opflow import PauliSumOp
-from qiskit.providers import Backend
+from qiskit.providers import Backend, JobError
 from qiskit.algorithms.optimizers import COBYLA
+
+NUM_RETRIES = 5
 
 def energy_expval(
     circuit: QuantumCircuit,
@@ -12,6 +14,10 @@ def energy_expval(
     shots: int = 2000
 ) -> float:
     """Compute the expectation value of the given Hamiltonian for the state defined by the given circuit.
+    
+    Because circuit execution on backends can sometimes fail for some strange reason, the body of the
+    function is wrapped in a retry loop. This is not terribly efficient, since in principle one needs to
+    only retry the specific circuit job that failed.
     
     Args:
         circuit: The circuit with whose final state we evaluate the expectation value.
@@ -22,66 +28,29 @@ def energy_expval(
     Returns:
         The energy expectation value.
     """
-    
-    energy = 0.
-    
-    ##################
-    ### EDIT BELOW ###
-    ##################
-    
-    # ノートブックの energy_expval の中身を貼り付けてください
-    
-    circuit_iz = circuit.copy()
-    circuit_iz.measure_all()
+    for itry in range(NUM_RETRIES):
+        energy = 0.
+        
+        try:
+            ##################
+            ### EDIT BELOW ###
+            ##################
 
-    circuit_iz = transpile(circuit_iz, backend=backend)
-    counts_iz = backend.run(circuit_iz, shots=shots).result().get_counts()
+            # ノートブックの energy_expval の中身を貼り付けて、変数名などを合わせてください
 
-    energy = 0.
-
-    for pauli_term in hamiltonian_op:
-        # paulisがXXYYやIZIZなどのパウリ積を表す文字列
-        paulis = pauli_term.primitive.paulis.to_labels()[0]
-        # coefficientがこの項の係数
-        coefficient = pauli_term.coeffs[0].real
-
-        if 'X' in paulis or 'Y' in paulis:
-            circ = circuit.copy()
-
-            for iq, label in enumerate(paulis[::-1]):
-                if label == 'X':
-                    circ.h(iq)
-                elif label == 'Y':
-                    circ.sdg(iq)
-                    circ.h(iq)
-
-            circ.measure_all()
-
-            circ = transpile(circ, backend=backend)
-            counts = backend.run(circ, shots=shots).result().get_counts()
-
+            ##################
+            ### EDIT ABOVE ###
+            ##################
+            
+        except JobError as ex:
+            if itry == NUM_RETRIES - 1:
+                raise
         else:
-            counts = counts_iz
+            # success
+            break
 
-        expval = 0.
-        for key, value in counts.items():
-            sign = 1.
-            for bit, label in zip(key, paulis):
-                if bit == '1' and label != 'I':
-                    sign *= -1.
-
-            expval += sign * value
-
-        expval /= shots
-
-        energy += coefficient * expval
-
-    ##################
-    ### EDIT ABOVE ###
-    ##################
-    
     return energy
-
+        
 
 def main(
     backend: Backend,
@@ -128,11 +97,8 @@ def main(
         ### EDIT BELOW ###
         ##################
         
-        # ノートブックのobjective_functionの中身を貼り付けてください
+        # ノートブックのobjective_functionの中身を貼り付けて、変数名などを合わせてください
         
-        circuit = ansatz.bind_parameters(param_values)
-        energy = energy_expval(circuit, hamiltonian_op, backend, shots)
-    
         ##################
         ### EDIT ABOVE ###
         ##################
