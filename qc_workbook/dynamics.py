@@ -130,6 +130,14 @@ def plot_heisenberg_spins(counts_list, num_spins, initial_state, omegadt, add_th
     legend_items = []
     legend_labels = []
 
+    spin_basis_change = None
+    if spin_component == 'x':
+        spin_basis_change = np.array([[1., 1.], [1., -1.]], dtype=np.complex128) * np.sqrt(0.5)
+    elif spin_component == 'y':
+        spin_basis_change = np.array([[1., -1.j], [-1.j, 1.]], dtype=np.complex128) * np.sqrt(0.5)
+    if spin_basis_change is not None:
+        basis_change = tensor_product([spin_basis_change] * num_spins)
+
     if add_theory_curve:
         # Construct the numerical Hamiltonian matrix from a list of Pauli operators
         paulis = list()
@@ -143,16 +151,8 @@ def plot_heisenberg_spins(counts_list, num_spins, initial_state, omegadt, add_th
         # Compute the statevector as a function of time from Hamiltonian diagonalization
         time_points, statevectors = diagonalized_evolution(-0.5 * hamiltonian, initial_state, omegadt * num_steps)
 
-        spin_basis_change = None
-        if spin_component == 'x':
-            spin_basis_change = np.array([[1., 1.], [1., -1.]], dtype=np.complex128) * np.sqrt(0.5)
-        elif spin_component == 'y':
-            spin_basis_change = np.array([[1., -1.j], [-1.j, 1.]], dtype=np.complex128) * np.sqrt(0.5)
-
         if spin_basis_change is not None:
-            basis_change = tensor_product([spin_basis_change] * num_spins)
             statevectors = basis_change @ statevectors
-            initial_state = basis_change @ initial_state
 
         x, y = bit_expectations_sv(time_points, statevectors)
 
@@ -170,6 +170,9 @@ def plot_heisenberg_spins(counts_list, num_spins, initial_state, omegadt, add_th
         legend_labels.append('exact')
     else:
         colors = None
+
+    if spin_basis_change is not None:
+        initial_state = basis_change @ initial_state
 
     # Time points
     time_points = np.linspace(0., num_steps * omegadt, num_steps + 1, endpoint=True)
